@@ -1,0 +1,5 @@
+automation/__pycache__/
+automation/*.log
+automation/*.pyc
+automation/*.pyo
+automation/*.pyd
