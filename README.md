@@ -1,6 +1,6 @@
 # Thumbtack Automation Bot
 
-Сжатая версия комерческого проекта для автоматизации взаимодействия с платформой [thumbtack.com](https://www.thumbtack.com) через Telegram-бота и Selenium.
+Сжатая версия коммерческого проекта для автоматизации взаимодействия с платформой [thumbtack.com](https://www.thumbtack.com) через Telegram-бота и Selenium.
 
 ## 📌 Основной функционал
 
