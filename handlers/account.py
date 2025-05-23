@@ -11,7 +11,7 @@ router_account = Router()
 
 @router_account.message(Text(text="Начать регистрацию аккаунта"))
 async def start_registration_prompt(message: types.Message, state: FSMContext):
-    await kill_all_browser_sessions(message, message.from_user.id)
+    await kill_all_browser_sessions(message)
     init_objects.init()
     await message.answer("Введите ZIP-код:")
     await state.set_state(RegisterState.waiting_for_zip)

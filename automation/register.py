@@ -1,6 +1,5 @@
 import random
 import time
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
@@ -104,7 +103,6 @@ class ThumbtackRegister:
         return None
 
     async def solve_captcha_and_submit(self, submit_btn, bot, user_id):
-        time.sleep(5)
         captcha_attempts = 0
 
         def is_4x4_captcha():
@@ -130,13 +128,17 @@ class ThumbtackRegister:
                     EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[src*='bframe']"))
                 )
                 self.driver.switch_to.frame(iframe)
+
                 reload_btn = WebDriverWait(self.driver, 5).until(
                     EC.element_to_be_clickable((By.ID, "recaptcha-reload-button"))
                 )
-                reload_btn.click()
+
+                ActionChains(self.driver).move_to_element(reload_btn).pause(0.4).click().perform()
+
                 self.driver.switch_to.default_content()
                 return True
-            except Exception:
+            except Exception as e:
+                print(f"Ошибка при попытке обновить капчу: {e}")
                 self.driver.switch_to.default_content()
                 return False
 
@@ -256,16 +258,16 @@ class ThumbtackRegister:
                 return False
 
         try:
-            if not is_4x4_captcha():
-                is_regular_captcha = test_click_random_tile_and_check_selected()
-                if not is_regular_captcha:
-                    await bot.send_message(user_id, "[⚠️] Обнаружена капча с исчезающими плитками. Меняем...")
-                    reload_captcha()
-                    time.sleep(2)
-                    return await self.solve_captcha_and_submit(submit_btn, bot, user_id)
-
             while True:
-                if captcha_attempts >= 10:
+                if not is_4x4_captcha():
+                    is_regular_captcha = test_click_random_tile_and_check_selected()
+                    if not is_regular_captcha:
+                        await bot.send_message(user_id, "[⚠️] Обнаружена капча с исчезающими плитками. Меняем...")
+                        reload_captcha()
+                        time.sleep(2)
+                        return await self.solve_captcha_and_submit(submit_btn, bot, user_id)
+
+                if captcha_attempts >= 25:
                     await bot.send_message(user_id, "[❌] Превышен лимит попыток решения капчи. Регистрация прервана.")
                     self.driver.quit()
                     return
@@ -298,7 +300,7 @@ class ThumbtackRegister:
                 finally:
                     self.driver.switch_to.default_content()
 
-                captcha_attempts += 1  # Увеличиваем счетчик
+                captcha_attempts += 1
 
                 coords = await solve_grid_captcha_2captcha(image_base64, instruction, bot, user_id)
 
@@ -306,15 +308,14 @@ class ThumbtackRegister:
                     await bot.send_message(user_id,
                                            f"[⚠️] Пустой ответ от 2Captcha (попытка {captcha_attempts}/10). Обновляем капчу...")
                     reload_captcha()
-                    time.sleep(2)
+                    time.sleep(1)
                     continue
 
-                success = await click_tiles(coords)
-                if not success:
-                    await bot.send_message(user_id,
-                                           f"[⚠️] После кликов ничего не выделилось (попытка {captcha_attempts}/10). Обновляем капчу...")
+                selected_any = await click_tiles(coords)
+                if not selected_any:
+                    await bot.send_message(user_id, "[♻️] Ни один тайл не выделился — нажимаем кнопку обновления.")
                     reload_captcha()
-                    time.sleep(2)
+                    time.sleep(1)
                     continue
 
                 clicked = await click_button(["Пропустить", "Далее", "Подтвердить"])
@@ -331,15 +332,13 @@ class ThumbtackRegister:
                 except:
                     cleared = clear_selected_tiles()
                     await bot.send_message(user_id, f"[🔁] Капча не исчезла. Снято {cleared} плиток. Повторяем...")
-                    time.sleep(2)
+                    time.sleep(1)
 
-            submit_btn.click()
             await bot.send_message(user_id, "[🚀] Форма отправлена.")
 
         except Exception as e:
             await bot.send_message(user_id, f"[❌] Общая ошибка при решении капчи: {e}")
             self.driver.quit()
-
 
     # Метод для получения base64 скриншота всей сетки капчи
     def get_captcha_grid_base64(self):
@@ -453,196 +452,3 @@ class ThumbtackRegister:
             await bot.send_message(user_id, "[❌] Не удалось подтвердить регистрацию: редирект на главную не произошёл.")
         except Exception as e:
             await bot.send_message(user_id, f"[❌] Ошибка при регистрации: {e}")
-
-
-
-
-
-
-
-
-# def human_typing(element, text):
-#     for char in text:
-#         element.send_keys(char)
-#         time.sleep(random.uniform(0.02, 0.05))  # задержка на каждый символ
-#
-# async def register_account(user_id: int, zip_code, service_name, bot, state):
-#     first_name, last_name = generate_name()
-#     password = generate_password()
-#     email = f"{first_name}sas{last_name}{random.randint(1000, 9999)}@gmail.com"
-#
-#     await bot.send_message(user_id, f"[👤] Имя: {first_name} {last_name}")
-#     await bot.send_message(user_id, f"[✉️] Email: {email}")
-#     await bot.send_message(user_id, f"[🔐] Пароль: {password}")
-#
-#     driver = get_driver()
-#     driver.get("https://www.thumbtack.com/register")
-#     WebDriverWait(driver, 90).until(
-#         lambda d: d.execute_script("return document.readyState") == "complete"
-#     )
-#
-#     google_btn_locator = (By.CSS_SELECTOR, "div.mv1 button")
-#     WebDriverWait(driver, 30).until(
-#         EC.element_to_be_clickable(google_btn_locator)
-#     )
-#
-#     time.sleep(15)
-#
-#     def clear_and_type(element, text):
-#         element.clear()
-#         for char in text:
-#             element.send_keys(char)
-#             time.sleep(random.uniform(0.05, 0.1))
-#
-#     def field_has_error(driver, field_name):
-#         try:
-#             field = driver.find_element(By.NAME, field_name)
-#             error_container = field.find_element(
-#                 By.XPATH, 'following-sibling::div[contains(@class, "FormNote_rootError__XZaKO")]'
-#             )
-#             return "Please fill out this field." in error_container.text
-#         except NoSuchElementException:
-#             return False
-#
-#     def field_is_empty(driver, field_name):
-#         try:
-#             field = driver.find_element(By.NAME, field_name)
-#             return not field.get_attribute("value").strip()
-#         except Exception:
-#             return True
-#
-#     def safe_fill(driver, field_name, value, retries=3):
-#         for _ in range(retries):
-#             try:
-#                 element = driver.find_element(By.NAME, field_name)
-#                 clear_and_type(element, value)
-#                 time.sleep(random.uniform(0.5, 1.0))
-#                 if not field_has_error(driver, field_name) and not field_is_empty(driver, field_name):
-#                     return True
-#             except Exception:
-#                 continue
-#         return False
-#
-#     def refill_invalid_fields(driver, values_dict):
-#         for name, value in values_dict.items():
-#             try:
-#                 element = driver.find_element(By.NAME, name)
-#                 current = element.get_attribute("value").strip()
-#
-#                 # Только если поле пустое или ошибка — переустанавливаем значение
-#                 if not current or field_has_error(driver, name):
-#                     element.clear()
-#                     for char in value:
-#                         element.send_keys(char)
-#                         time.sleep(random.uniform(0.05, 0.1))
-#                     time.sleep(1)
-#             except Exception:
-#                 continue
-#
-#     try:
-#         # 1. Заполняем форму с начальной попытки
-#         fields = {
-#             "usr_first_name": first_name,
-#             "usr_last_name": last_name,
-#             "usr_email": email,
-#             "usr_password": password,
-#         }
-#
-#         for field_name, value in fields.items():
-#             if not safe_fill(driver, field_name, value):
-#                 await bot.send_message(user_id, f"[❌] Не удалось ввести поле: {field_name}")
-#
-#         driver.execute_script("window.scrollBy(0, 300);")
-#         ActionChains(driver).move_by_offset(random.randint(100, 300), random.randint(100, 300)).perform()
-#
-#         # 2. Снимаем галочку "remember me", если стоит
-#         try:
-#             checkbox = driver.find_element(By.NAME, "remember_me")
-#             if checkbox.is_selected():
-#                 checkbox.click()
-#                 await bot.send_message(user_id, "[☑️] Сняли галочку 'Remember me'")
-#         except Exception:
-#             await bot.send_message(user_id, "[!] Галочка 'Remember me' не найдена или неактивна")
-#
-#         # 3. Повторная проверка и ввод неверных полей
-#         refill_invalid_fields(driver, fields)
-#
-#         # 4. Проверка финальная
-#         errors = [f for f in fields if field_has_error(driver, f) or field_is_empty(driver, f)]
-#         if errors:
-#             await bot.send_message(user_id, f"[⚠️] Ошибка при вводе полей: {', '.join(errors)}. Форма не отправлена.")
-#             return
-#
-#         try:
-#             submit_btn = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
-#             submit_btn.click()
-#             time.sleep(5)
-#
-#             try:
-#                 # 1. Пробуем найти sitekey вручную в HTML
-#                 page_source = driver.page_source
-#                 site_key_match = re.search(r'data-sitekey="(.+?)"', page_source)
-#
-#                 if not site_key_match:
-#                     # Пробуем искать в JS
-#                     script_tags = driver.find_elements(By.TAG_NAME, "script")
-#                     for script in script_tags:
-#                         script_content = script.get_attribute("innerHTML")
-#                         match = re.search(r'recaptcha\.render\([^,]+,\s*{\s*["\']sitekey["\']\s*:\s*["\'](.+?)["\']',
-#                                           script_content)
-#                         if match:
-#                             site_key_match = match
-#                             break
-#
-#                 if not site_key_match:
-#                     raise Exception("Не удалось найти sitekey для капчи")
-#
-#                 site_key = site_key_match.group(1)
-#                 current_url = driver.current_url
-#
-#                 await bot.send_message(user_id, "[🔍] Invisible reCAPTCHA обнаружена. Решаем через CapMonster...")
-#
-#                 # 2. Решаем капчу
-#                 token = solve_recaptcha_v2(site_key, current_url)
-#                 await bot.send_message(user_id, "[🔓] Токен получен. Вставляем в форму...")
-#
-#                 # 3. Вставляем токен
-#                 driver.execute_script("""
-#                     let textarea = document.getElementById("g-recaptcha-response");
-#                     if (!textarea) {
-#                         textarea = document.createElement("textarea");
-#                         textarea.id = "g-recaptcha-response";
-#                         textarea.name = "g-recaptcha-response";
-#                         textarea.style.display = "none";
-#                         document.body.appendChild(textarea);
-#                     }
-#                     textarea.value = arguments[0];
-#                     textarea.dispatchEvent(new Event('input', { bubbles: true }));
-#                 """, token)
-#
-#                 time.sleep(2)
-#
-#                 # 4. Повторная попытка сабмита
-#                 submit_btn = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
-#                 submit_btn.click()
-#
-#             except Exception as e:
-#                 await bot.send_message(user_id, f"[ℹ️] Капча обнаружена. Производится процесс решения")
-#
-#             # Успешная регистрация
-#             WebDriverWait(driver, 120).until(EC.url_to_be("https://www.thumbtack.com/"))
-#             WebDriverWait(driver, 60).until(EC.visibility_of_element_located(
-#                 (By.CSS_SELECTOR, "input[data-test='search-input']")
-#             ))
-#
-#             await bot.send_message(user_id, "[✅] Аккаунт успешно зарегистрирован")
-#             await after_registration_flow(driver, human_typing, bot, user_id, zip_code, service_name, state)
-#
-#         except TimeoutException:
-#             await bot.send_message(user_id, "[❌] Не удалось подтвердить регистрацию: редирект на главную не произошёл.")
-#         except Exception as e:
-#             await bot.send_message(user_id, f"[❌] Ошибка при регистрации: {e}")
-#     except Exception as e:
-#         await bot.send_message(user_id, f"[❌] Ошибка при регистрации: {e}")
-#
-#

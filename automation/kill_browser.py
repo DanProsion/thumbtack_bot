@@ -2,7 +2,7 @@ import platform
 import subprocess
 from loader import init_objects
 
-async def kill_all_browser_sessions(message, user_id):
+async def kill_all_browser_sessions(message):
     try:
         if init_objects.driver is not None:
             try:

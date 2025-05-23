@@ -1,8 +1,9 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
+from proxy import proxy
 
-def get_driver(proxy='172.234.68.64:17468'):
+def get_driver(proxy=proxy):
     ip, port = proxy.split(":")
 
     profile = FirefoxProfile()

@@ -2,60 +2,6 @@ import time
 import requests
 from config import API_TOKEN_CAPTCHA
 
-# def solve_recaptcha_v2(site_key: str, url: str, timeout: int = 150, retry_interval: int = 5) -> str:
-#     # 1. Создание задачи
-#     create_task_resp = requests.post(
-#         'https://api.capmonster.cloud/createTask',
-#         json={
-#             "clientKey": API_TOKEN_CAPTCHA,
-#             "task": {
-#                 "type": "RecaptchaV2TaskProxyless",
-#                 "websiteURL": url,
-#                 "websiteKey": site_key
-#             }
-#         }
-#     )
-#
-#     if create_task_resp.status_code != 200:
-#         raise Exception(f"[CapMonster ERROR] HTTP ошибка при создании задачи: {create_task_resp.status_code}")
-#
-#     create_task_data = create_task_resp.json()
-#     if create_task_data.get("errorId") != 0:
-#         raise Exception(f"[CapMonster ERROR] Ошибка при создании задачи: {create_task_data}")
-#
-#     task_id = create_task_data.get("taskId")
-#     if not task_id:
-#         raise Exception(f"[CapMonster ERROR] Не получен taskId: {create_task_data}")
-#
-#     print(f"[INFO] Задача на капчу создана, taskId={task_id}")
-#
-#     # 2. Ожидание результата
-#     elapsed = 0
-#     while elapsed < timeout:
-#         time.sleep(retry_interval)
-#         elapsed += retry_interval
-#
-#         result_resp = requests.post(
-#             'https://api.capmonster.cloud/getTaskResult',
-#             json={
-#                 "clientKey": API_TOKEN_CAPTCHA,
-#                 "taskId": task_id
-#             }
-#         )
-#
-#         if result_resp.status_code != 200:
-#             raise Exception(f"[CapMonster ERROR] HTTP ошибка при получении результата: {result_resp.status_code}")
-#
-#         result_data = result_resp.json()
-#         if result_data.get("errorId") != 0:
-#             raise Exception(f"[CapMonster ERROR] Ошибка при получении результата: {result_data}")
-#
-#         if result_data.get("status") == "ready":
-#             print(f"[INFO] Решение получено за {elapsed} секунд")
-#             return result_data["solution"]["gRecaptchaResponse"]
-#
-#     raise Exception("[CapMonster ERROR] Время ожидания истекло (timeout)")
-
 async def solve_grid_captcha_2captcha(image_base64: str, instruction: str, bot=None, user_id=None,
                                       timeout: int = 120, retry_interval: int = 5) -> list:
     await bot.send_message(user_id, "[📡] Отправляем grid-капчу (image selection) на решение через 2Captcha...")
@@ -131,8 +77,7 @@ async def solve_grid_captcha_2captcha(image_base64: str, instruction: str, bot=N
                 if coords == "no_answer":
                     await bot.send_message(user_id, f"[⭕️] Нет подходящих изображений (no_answer)")
                     return []
-                await bot.send_message(user_id, f"[📍] Координаты получены: {raw_coords}")
-                await bot.send_message(user_id, f"[🧩] Разобранные координаты: {coords}")
+                await bot.send_message(user_id, f"[📍] Координаты получены")
                 return coords
             elif text == "CAPCHA_NOT_READY":
                 continue
@@ -145,8 +90,7 @@ async def solve_grid_captcha_2captcha(image_base64: str, instruction: str, bot=N
                 if coords == "no_answer":
                     await bot.send_message(user_id, f"[⭕️] Нет подходящих изображений (no_answer)")
                     return []
-                await bot.send_message(user_id, f"[📍] Координаты получены: {raw_coords}")
-                await bot.send_message(user_id, f"[🧩] Разобранные координаты: {coords}")
+                await bot.send_message(user_id, f"[📍] Координаты получены")
                 return coords
             elif result_json.get('request') == 'CAPCHA_NOT_READY':
                 continue
